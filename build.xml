@@ -1,0 +1,208 @@
+﻿<project name="Ser321 Java and C++ Serialization to json"
+         default="targets" basedir="."
+         xmlns="antlib:org.apache.tools.ant">
+   <taskdef resource="cpptasks.tasks"/>
+   <taskdef resource="net/sf/antcontrib/antcontrib.properties"/>
+
+   <property name="src.java.dir" value="./src/java" />
+   <property name="build" value="./classes" />
+   <property name="classes.dir" value="classes"/>
+   <property name="dist.dir" value="bin"/>
+   <property name="lib" value="./lib" />
+   <property name="src.cpp.dir" value="./src/cpp"/>
+   <property name="obj.dir" value="obj"/>
+   <property name="dist.dir" value="bin"/>
+   <property name="ipadd" value="127.0.0.1"/>
+   <property name="port" value="3030"/>
+   <property name="json.file.name" value="movieRPCMethods.json"/>
+   <property environment="env"/>
+
+   <path id="compile.classpath">
+      <pathelement location="${build}"/>
+      <pathelement path="${lib}/json.jar"/>
+      <pathelement path="${lib}/movieGui.jar"/>
+   </path>
+
+   <target name="targets">
+     <echo message="targets are clean, prepare, build.server.assign6, build.client.assign6, execute.server.assign6, execute.client.assign6, build.server.assign5, build.client.assign5" />
+     <echo message="Port number can be specified in execute.server.assign6 by passing the command line argument: -Dport=(port#) for example: ant execute.server.assign6 -Dport=3030" />
+     <echo message="Port number and ip address can be specified in execute.client.assign6 by passing the command line arguments: -Dport=(port#) -Dipadd=(ipadd), for example ant execute.client.assign6 -Dport=3030 -Dipadd=127.0.0.1" />
+   </target>
+
+   <target name="prepare">
+      <!-- Create the time stamp -->
+      <tstamp/>
+      <!-- Create the build directory structure used by compile -->
+      <echo message="home defined as: ${env.HOME}" />
+      <mkdir dir="${build}" />
+      <mkdir dir="${classes.dir}"/>
+      <mkdir dir="${dist.dir}" />
+      <mkdir dir="${obj.dir}/client" />
+      <mkdir dir="${obj.dir}/server" />
+      <copy file="movies.json"
+            tofile="${dist.dir}/movies.json"/>
+      <if>
+         <isset property="env.USERNAME"/>
+         <then>
+            <echo message="detected username is: ${env.USERNAME}"/>
+         </then>
+      <elseif>
+         <isset property="env.USER"/>
+         <then>
+            <echo message="detected user is: ${env.USER}"/>
+         </then>
+      </elseif>
+      </if>
+      <echo message="host name is: ${os.name}"/>
+      <echo message="host arch is: ${os.arch}"/>
+      <echo message="host version is: ${os.version}"/>
+      <echo message="base directory is: ${basedir}"/>
+
+      <!-- Platform identification -->
+      <condition property="build.host.islinux">
+        <and>
+          <os family="unix" />
+          <not>
+            <contains string="${os.name}" substring="mac"
+                      casesensitive="false" />
+          </not>
+        </and>
+      </condition>
+      <condition property="build.host.platform" value="linux">
+        <isset property="build.host.islinux" />
+      </condition>
+
+      <condition property="build.host.ismac">
+        <and>
+          <os family="unix" />
+          <contains string="${os.name}" substring="mac" casesensitive="false"/>
+        </and>
+      </condition>
+      <condition property="build.host.platform" value="mac">
+        <isset property="build.host.ismac" />
+      </condition>
+
+      <fail unless="build.host.platform"
+            message="Building on ${os.name} is not supported" />
+      <echo message="build.host.platform is: ${build.host.platform}"/>
+      <if>
+         <isset property="build.host.ismac"/>
+         <then>
+            <echo message="detected a mac host"/>
+            <property name="includepath" value="/opt/local/include:/usr/local/include"/>
+            <property name="client.lib.path" value="/opt/local/lib"/>
+            <property name="client.lib.list" value="c++,jsoncpp,jsonrpccpp-client,fltk,jsonrpccpp-common,microhttpd,stdc++"/>
+            <property name="server.lib.path" value="/opt/local/lib"/>
+            <property name="server.lib.list" value="c++,jsoncpp,fltk, jsonrpccpp-server,jsonrpccpp-common,microhttpd"/>
+         </then>
+      <elseif>
+         <isset property="build.host.islinux"/>
+         <then>
+            <echo message="detected a linux host"/>
+            <property name="includepath" value="/usr/include/jsoncpp"/>
+            <property name="client.lib.path" value="/usr/local/lib"/>
+            <property name="client.lib.list" value="jsoncpp,jsonrpccpp-client,fltk,jsonrpccpp-common,microhttpd,stdc++"/>
+            <property name="server.lib.path" value="/usr/local/lib"/>
+            <property name="server.lib.list" value="jsoncpp,jsonrpccpp-server,fltk,jsonrpccpp-common,microhttpd,stdc++"/>
+         </then>
+      </elseif>
+      <else>
+         <echo message="failed to detect a host I know how to build on"/>
+      </else>
+   </if>
+   </target>
+
+   <target name="build.server.assign6" depends="prepare"
+           description="Compile Java sources">
+      <javac srcdir="${src.java.dir}/manualsocks"
+             includeantruntime="false"
+             destdir="${build}">
+         <classpath refid="compile.classpath"/>
+      </javac>
+   </target>
+   
+   <target name="build.client.assign6" depends="prepare"
+           description="Compile Java sources">
+      <javac srcdir="${src.java.dir}/client"
+             includeantruntime="false"
+             destdir="${build}">
+         <classpath refid="compile.classpath"/>
+      </javac>
+   </target>
+   
+   <target name="execute.server.assign6" depends="build.server.assign6"
+           description="Start program">
+         <echo message="command line execute: java -cp classes:lib/movieGui.jar MovieLibServer" />
+         <java classname="MovieLibServer" fork="yes">
+           <classpath refid="compile.classpath"/>
+           <arg value="${port}"/>
+         </java>
+   </target>
+   
+    <target name="execute.client.assign6" depends="build.client.assign6"
+           description="Start program">
+         <echo message="command line execute: java -cp classes:lib/movieGui.jar ser321.movie.SampleMovieClient" />
+         <java classname="MovieLibClient" fork="yes">
+           <classpath refid="compile.classpath"/>
+           <arg value="${ipadd}"/>
+           <arg value="${port}"/>
+         </java>
+   </target>
+   
+   <target name="generate.client.stub" depends="prepare">
+      <exec dir="${basedir}" executable="jsonrpcstub">
+         <arg line="${json.file.name} --cpp-client=StubClient"/>
+      </exec>
+      <copy file="stubclient.h"
+            tofile="${src.cpp.dir}/client/stubclient.h"/>
+      <delete file="stubclient.h"/>
+
+   </target>
+
+   <target name="build.client.assign5" depends="generate.client.stub">
+      <cc outtype="executable" subsystem="console"
+          outfile="${dist.dir}/movieLibraryClient"
+          objdir="${obj.dir}/client">
+         <includepath>
+            <pathelement path="${includepath}"/>
+         </includepath>
+         <libset dir="${client.lib.path}" libs="${client.lib.list}"/>
+         <fileset dir="${src.cpp.dir}/client" includes="CPPClient.cpp, MovieLibraryGUI.cpp"/>
+      </cc>
+   </target>
+
+   <target name="generate.server.stub" depends="prepare">
+      <exec dir="${basedir}" executable="jsonrpcstub">
+         <arg line="${json.file.name} --cpp-server=AbstractStubServer"/>
+      </exec>
+      <copy file="abstractstubserver.h"
+            tofile="${src.cpp.dir}/server/abstractstubserver.h"/>
+      <delete file="abstractstubserver.h"/>
+   </target>
+
+   <target name="build.server.assign5" depends="generate.server.stub">
+     <cc outtype="executable" subsystem="console"
+         outfile="${dist.dir}/movieLibraryServer"
+         objdir="${obj.dir}/server">
+        <compiler name="g++"/>
+         <includepath>
+            <pathelement path="${includepath}"/>
+         </includepath>
+         <libset dir="${server.lib.path}" libs="${server.lib.list}"/>
+         <fileset dir="${src.cpp.dir}/server"
+                  includes="CPPServer.cpp, MovieDescription.cpp"/>
+      </cc>
+   </target>
+
+
+   <target name="clean">
+      <delete dir="${build}" />
+      <delete dir="${obj.dir}" failonerror="false"/>
+      <delete dir="${dist.dir}" failonerror="false"/>
+      <delete file="${src.cpp.dir}/server/calculateserverstub.h"
+              failonerror="false"/>
+      <delete file="${src.cpp.dir}/client/calculatestub.h"
+              failonerror="false"/>
+   </target>
+
+</project>
