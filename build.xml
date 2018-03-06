@@ -1,4 +1,4 @@
-﻿<project name="Ser321 Java and C++ Serialization to json"
+﻿<project name="Java and C++ Serialization to json"
          default="targets" basedir="."
          xmlns="antlib:org.apache.tools.ant">
    <taskdef resource="cpptasks.tasks"/>
